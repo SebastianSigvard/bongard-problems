@@ -1,5 +1,27 @@
 import requests
 import base64
+import pdfkit
+
+
+def generate_pdf_from_html(html_content, pdf_path):
+    try:
+        # Configure PDF options if needed
+        pdf_options = {
+            'page-size': 'A5',
+            'margin-top': '12mm',
+            'margin-right': '2mm',
+            'margin-bottom': '2mm',
+            'margin-left': '2mm',
+        }
+
+        # Generate PDF from HTML content
+        pdfkit.from_string(html_content, pdf_path, options=pdf_options)
+
+        print(f"PDF successfully generated at: {pdf_path}")
+
+    except Exception as e:
+        print(f"Error generating PDF: {e}")
+
 
 url = "https://www.oebp.org/solve.php"
 headers = {
@@ -16,13 +38,71 @@ headers = {
     "Upgrade-Insecure-Requests": "1",
 }
 
-params = {"bp": "1", "referrer": "https://www.oebp.org/solve.php?bp=1246"}
+num_pages = 1
 
-response = requests.get(url, headers=headers, params=params)
+html_content = '''
+<html>
+    <head>
+        <style>
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+            }
+            .page {
+                text-align: center;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            p {
+                font-size: large;
+                font-family: "Lucida Handwriting", Cursive;
+                -webkit-transform: rotate(-180deg); 
+                -moz-transform: rotate(-180deg); 
+            }
+        </style>
+    </head>
+    <body>
+        <center>
+'''
 
-page = response.text
+for i in range(num_pages):
+    html_content = html_content + '<div class="page">'
+    for j in range(1, 3):
+        params = {"bp": str(2*i + j), "referrer": "https://www.oebp.org/solve.php?bp=1246"}
 
-s_img_idx = page.find('<img src=') + 10
-e_img_idx = page.find('\" /><')
+        response = requests.get(url, headers=headers, params=params)
 
-encoded_image = page[s_img_idx:e_img_idx]
+        page = response.text
+
+        s_img_idx = page.find('<img src=') + 10
+        e_img_idx = page.find('\" /><')
+
+        s_sol_idx = page.find('"display: none;">') + 17
+        e_sol_idx = page[s_sol_idx:].find('</p>')
+
+        encoded_image = page[s_img_idx:e_img_idx]
+        solution = page[s_sol_idx:e_sol_idx + s_sol_idx]
+
+        html_content = html_content + f'''
+            <h1>BP{2*i + j}</h1>
+            <img src="{encoded_image}" />
+            <p>Solution: {solution}</p>
+        '''
+
+    html_content = html_content + '''</div>
+        <div class="page-break"></div>
+    '''
+
+html_content = html_content + '''
+        <center>
+    </body>
+</html>
+'''
+
+pdf_path = "output.pdf"
+
+generate_pdf_from_html(html_content, pdf_path)
