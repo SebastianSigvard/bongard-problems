@@ -1,6 +1,6 @@
 import requests
-import base64
 import pdfkit
+import re
 
 
 def generate_pdf_from_html(html_content, pdf_path):
@@ -8,7 +8,7 @@ def generate_pdf_from_html(html_content, pdf_path):
         # Configure PDF options if needed
         pdf_options = {
             'page-size': 'A5',
-            'margin-top': '12mm',
+            'margin-top': '6mm',
             'margin-right': '2mm',
             'margin-bottom': '2mm',
             'margin-left': '2mm',
@@ -38,7 +38,7 @@ headers = {
     "Upgrade-Insecure-Requests": "1",
 }
 
-num_pages = 1
+num_pages = 2
 
 html_content = '''
 <html>
@@ -58,6 +58,7 @@ html_content = '''
                 page-break-before: always;
             }
             p {
+                line-height: 1.2;
                 font-size: large;
                 font-family: "Lucida Handwriting", Cursive;
                 -webkit-transform: rotate(-180deg); 
@@ -69,14 +70,20 @@ html_content = '''
         <center>
 '''
 
+pattern = r'<button type="submit" name="bp" value="(\d+)">Next</button>'
+next = 222
+
 for i in range(num_pages):
     html_content = html_content + '<div class="page">'
     for j in range(1, 3):
-        params = {"bp": str(2*i + j), "referrer": "https://www.oebp.org/solve.php?bp=1246"}
+        params = {"bp": str(next), "referrer": "https://www.oebp.org/solve.php?bp=1246"}
 
         response = requests.get(url, headers=headers, params=params)
 
         page = response.text
+
+        match = re.search(pattern, page)
+        next = match.group(1)
 
         s_img_idx = page.find('<img src=') + 10
         e_img_idx = page.find('\" /><')
@@ -88,8 +95,8 @@ for i in range(num_pages):
         solution = page[s_sol_idx:e_sol_idx + s_sol_idx]
 
         html_content = html_content + f'''
-            <h1>BP{2*i + j}</h1>
-            <img src="{encoded_image}" />
+            <h2>BP{2*i + j}</h2>
+            <img src="{encoded_image}" width="515" height="326"/>
             <p>Solution: {solution}</p>
         '''
 
