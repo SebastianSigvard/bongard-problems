@@ -38,8 +38,6 @@ headers = {
     "Upgrade-Insecure-Requests": "1",
 }
 
-num_pages = 2
-
 html_content = '''
 <html>
     <head>
@@ -70,8 +68,10 @@ html_content = '''
         <center>
 '''
 
+num_pages = 222
+
 pattern = r'<button type="submit" name="bp" value="(\d+)">Next</button>'
-next = 222
+next = 1
 
 for i in range(num_pages):
     html_content = html_content + '<div class="page">'
